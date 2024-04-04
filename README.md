@@ -4,6 +4,8 @@ simple and fast C hashmap implementation.
 ## Usage
 ```C
 int main() {
+  // set logging stream
+  errstream = stderr;
   int key;
   struct MyType {
     int f;
