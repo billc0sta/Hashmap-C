@@ -83,4 +83,7 @@ uint64_t HS_get_count(Hashmap *hs);
 
 // returns the last added element, returns NULL if hashmap is empty
 void *HS_get_head(Hashmap *hs);
+
+// returns the first added element, returns NULL if hashmap is empty
+void *HS_get_tail(Hashmap *hs);
 ```
