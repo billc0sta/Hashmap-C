@@ -10,6 +10,8 @@
 #define min(f, s) (f < s) ? f : s
 #define BASE_SIZE 50
 
+FILE *errstream = NULL;
+
 struct _HS_Node {
   void *key;
   void *val;
@@ -27,7 +29,6 @@ typedef struct {
   struct _HS_Node **_arr;
   struct _HS_Node *_tail;
   struct _HS_Node *_head;
-  FILE *_errstream;
 } Hashmap;
 
 // sets a node to it's default values
@@ -39,7 +40,7 @@ static inline void _HS_remove_node(struct _HS_Node *nd);
 // inserts a node in front of another, assumes back is disowned
 static inline void _HS_insert_next(struct _HS_Node *front, struct _HS_Node *back);
 // reports an error to the stderr
-static inline void _HS_report_error(FILE *errstream, const char *error, const char *reason);
+static inline void _HS_report_error(const char *error, const char *reason);
 // murmur hashing function
 static uint32_t _HS_hash(unsigned char *key, uint64_t key_typesize);
 // adds a node to the end of the list
@@ -51,15 +52,14 @@ static void _HS_reserve_more(Hashmap *hs, uint64_t size);
 
 Hashmap HS_create_hashmap(uint32_t key_typesize, uint32_t val_typesize) {
   Hashmap hs;
-  hs._errstream = NULL;
   if (key_typesize == 0 || val_typesize == 0) {
-    _HS_report_error(hs._errstream, "create_hashmap() failed", "invalid type sizes");
+    _HS_report_error("create_hashmap() failed", "invalid type sizes");
     return hs;
   }
   hs._reserved = BASE_SIZE;
   hs._arr = calloc(hs._reserved, sizeof(struct _HS_Node *));
   if (!hs._arr) {
-    _HS_report_error(hs._errstream, "create_hashmap() failed", "allocation failed");
+    _HS_report_error("create_hashmap() failed", "allocation failed");
     return hs;
   }  
   hs._key_typesize = key_typesize;
@@ -70,16 +70,9 @@ Hashmap HS_create_hashmap(uint32_t key_typesize, uint32_t val_typesize) {
   return hs;
 }
 
-void set_hashmap_errstream(Hashmap *hs, FILE *stream) {
-  if (!hs || !stream) {
-    _HS_report_error(hs->_errstream, "set_hashmap_errstream() failed", "invalid NULL ptr");
-  }
-  hs->_errstream = stream;
-}
-
 uint64_t HS_get_reserved(Hashmap *hs) {
   if (!hs) {
-    _HS_report_error(hs->_errstream, "get_reserved() failed", "invalid NULL ptr");
+    _HS_report_error("get_reserved() failed", "invalid NULL ptr");
     return 0;
   }
   return hs->_reserved;
@@ -87,7 +80,7 @@ uint64_t HS_get_reserved(Hashmap *hs) {
 
 uint64_t HS_get_count(Hashmap *hs) {
   if (!hs) {
-    _HS_report_error(hs->_errstream, "get_count() failed", "invalid NULL ptr");
+    _HS_report_error("get_count() failed", "invalid NULL ptr");
     return 0;
   }
   return hs->_count;
@@ -95,7 +88,7 @@ uint64_t HS_get_count(Hashmap *hs) {
 
 int HS_reserve(Hashmap *hs, uint64_t size) {
   if (!hs) {
-    _HS_report_error(hs->_errstream, "reserve() failed", "invalid NULL ptr");
+    _HS_report_error("reserve() failed", "invalid NULL ptr");
     return -1;
   }
   _HS_reserve_more(hs, size);
@@ -104,7 +97,7 @@ int HS_reserve(Hashmap *hs, uint64_t size) {
 
 void HS_clear_hashmap(Hashmap *hs) {
   if (!hs) {
-    _HS_report_error(hs->_errstream, "clear_hashmap() failed", "invalid NULL ptr");
+    _HS_report_error("clear_hashmap() failed", "invalid NULL ptr");
     return;
   }
   struct _HS_Node *current = hs->_head;
@@ -119,12 +112,11 @@ void HS_clear_hashmap(Hashmap *hs) {
   hs->_count = 0;
   hs->_tail = NULL;
   hs->_head = NULL;
-  hs->_errstream = NULL;
 }
 
 int HS_destroy_hashmap(Hashmap *hs) {
   if (!hs) {
-    _HS_report_error(hs->_errstream, "destroy_hashmap() failed", "invalid NULL ptr");
+    _HS_report_error("destroy_hashmap() failed", "invalid NULL ptr");
     return -1;
   }
   // zeroing and deallocating nodes
@@ -139,11 +131,11 @@ int HS_destroy_hashmap(Hashmap *hs) {
 
 void HS_traverse_hashmap(Hashmap *hs, void func(void * key, void * val)) {
   if (!hs || !func) {
-    _HS_report_error(hs->_errstream, "traverse_hashmap() failed", "invalid NULL ptr");
+    _HS_report_error("traverse_hashmap() failed", "invalid NULL ptr");
     return;
   }
   if (hs->_count == 0) {
-    _HS_report_error(hs->_errstream, "traverse_hashmap() failed",
+    _HS_report_error("traverse_hashmap() failed",
                      "no elements in hashmap");
     return;
   }
@@ -157,11 +149,11 @@ void HS_traverse_hashmap_payload(Hashmap *hs,
                                  void func(void *key, void *val, void *payload),
                                  void *payload) {
   if (!hs || !func) {
-    _HS_report_error(hs->_errstream, "traverse_hashmap_payload() failed", "invalid NULL ptr");
+    _HS_report_error("traverse_hashmap_payload() failed", "invalid NULL ptr");
     return;
   }
   if (hs->_count == 0) {
-    _HS_report_error(hs->_errstream, "traverse_hashmap_payload() failed",
+    _HS_report_error("traverse_hashmap_payload() failed",
                      "no elements in hashmap");
     return;
   }
@@ -173,11 +165,11 @@ void HS_traverse_hashmap_payload(Hashmap *hs,
 
 void *HS_get_head(Hashmap *hs) {
   if (!hs) {
-    _HS_report_error(hs->_errstream, "get_head() failed", "invalid NULL ptr");
+    _HS_report_error("get_head() failed", "invalid NULL ptr");
     return NULL;
   }
   if (!hs->_head) {
-    _HS_report_error(hs->_errstream, "get_head() failed", "no elements in hashmap");
+    _HS_report_error("get_head() failed", "no elements in hashmap");
     return NULL;
   }
   return hs->_head;
@@ -208,7 +200,7 @@ void *HS_get_element(Hashmap *hs, void *key) {
 
 int HS_add_element(Hashmap *hs, void *key, void *val) {
   if (!hs || !key || !val) {
-    _HS_report_error(hs->_errstream, "add_element() failed", "invalid NULL ptr");
+    _HS_report_error("add_element() failed", "invalid NULL ptr");
     return -1;
   }
   if (hs->_count == hs->_reserved - 1) {
@@ -224,7 +216,7 @@ int HS_add_element(Hashmap *hs, void *key, void *val) {
     if (nd) free(nd);
     if (nd->key) free(nd->key);
     if (nd->val) free(nd->val);
-    _HS_report_error(hs->_errstream, "add_element() failed", "allocation failed");
+    _HS_report_error("add_element() failed", "allocation failed");
     return -1;
   }
   memcpy(nd->key, key, ktsize);
@@ -260,15 +252,14 @@ int HS_add_element(Hashmap *hs, void *key, void *val) {
 }
 
 int HS_remove_element(Hashmap *hs, void *key) {
-  printf("hello there");
   if (!hs || !key) {
-    _HS_report_error(hs->_errstream, "remove_element() failed",
+    _HS_report_error("remove_element() failed",
                      "invalid NULL ptr");
     return -1;
   }
   struct _HS_Node *nd = _HS_get_node(hs, key);  
   if (!nd) {
-    _HS_report_error(hs->_errstream, "remove_element() failed", "no such key");
+    _HS_report_error("remove_element() failed", "no such key");
     return -1;
   }
 
@@ -353,7 +344,7 @@ static void _HS_reserve_more(Hashmap *hs, uint64_t size) {
   free(hs->_arr);
   hs->_arr = calloc(hs->_reserved + size, sizeof(struct _Node *));
   if (!hs->_arr) {
-    _HS_report_error(hs->_errstream, "resizing hashmap failed", "allocation failed");
+    _HS_report_error("resizing hashmap failed", "allocation failed");
     return;
   }
   hs->_reserved += size;
@@ -379,11 +370,10 @@ static void _HS_reserve_more(Hashmap *hs, uint64_t size) {
   }
 }
 
-static inline void _HS_report_error(FILE *errstream, const char *error,
-                                    const char *reason) {
-  if (errstream == NULL)
+static inline void _HS_report_error(const char *error, const char *reason) {
+  if (!errstream)
     errstream = stderr;
-  fprintf(stderr, "\n[HS error]: %s \nreason: %s\n", error, reason);
+  fprintf(errstream, "\n[HS ERROR]: %s \n--> reason: %s\n", error, reason);
 }
 
 static inline struct _HS_Node *_HS_get_node(Hashmap *hs, void *key) {
