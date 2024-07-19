@@ -1,89 +1,89 @@
-# C Hashmap Implementation# C Hashmap Implementation
-simple and fast C hashmap implementation.
+simple and acceptably fast C hashmap implementation.
 
 ## Usage
 ```C
-int main() {
-  // set logging stream
-  errstream = stderr;
+void free_string(void* str)
+{
+	// this works similarly to a C++ destructor.
+	// don't free the pointer itself, only free and destruct your data.
+	free(*(char**)str);
+}
 
-  int key;
-  struct MyType {
-    int f;
-    int s;
-  } val;
-  // initialize
-  Hashmap hs = HS_create_hashmap(sizeof(key), sizeof(val));
+unsigned int hash_string(const void* str, unsigned int seed) 
+{
+	return hashmap_murmur(str, strlen(str), seed);
+}
 
-  // add
-  key = 132;
-  val.f = 100;
-  val.s = 32;
-  HS_add_element(&hs, &key, &val);
+int compare_string(const void* str1, const void* str2) 
+{
+	const char* s1 = str1;
+	const char* s2 = str2;
+	return strcmp(s1, s2);
+}
 
-  // get
-  MyType *my_val = HS_get_element(&hs, key);
-  if (!my_val) {
-    printf("no such element");
-  } else {
-    // use
-    printf("f: %d\n, s: %d\n", my_val->f, my_val->s);
-  }
+int sum = 0;
+void callback_scan(void* key, void* val) 
+{
+	sum += *(int*)val;
+}
 
-  // deallocate hashmap resources
-  HS_destroy_hashmap(&hs);
-  return 0;
+int main()
+{
+	hashmap* map = hashmap_new(sizeof(char*), sizeof(int), 0, hash_string, compare_string, NULL, NULL);
+
+	hashmap_set(map, &"one", &(int){1});
+	hashmap_set(map, &"two", &(int){2});
+	hashmap_set(map, &"three", &(int){3});
+	hashmap_set(map, &"four", &(int){4});
+
+	int* two = hashmap_get(map, "two");
+	if (!two)
+		printf("hashmap error: %s\n", hashmap_error());
+	else
+		printf("two: %d\n", *two);
+
+	hashmap_remove(map, &"four");
+	printf("count: %zu\n", hashmap_count(map)); 
+
+	hashmap_iter* iter = hashmap_iterator(map);
+	void* key;
+	void* val;
+	while (hashmap_next(&iter, &key, &val)) 
+	{
+		char* k = key;
+		int v = *(int*)val;
+		printf("{key -> %s : val -> %d}\n", k, v);
+	} 
+
+	hashmap_scan(map, callback_scan);
+	printf("sum: %d\n", sum);
+
+	hashmap_free(map);
 }
 ```
 
 ## functions
-### basic
-```C
-// intializes a hashmap and returns it
-Hashmap HS_create_hashmap(uint32_t key_size, uint32_t val_size);
-
-// deallocates the hashmap resources
-int HS_destroy_hashmap(Hashmap *hashmap);
-
-// adds element by key
-int HS_add_element(Hashmap *hashmap, void *key, void *val);
-
-// removes element by key
-int HS_remove_element(Hashmap *hashmap, void *key);
-
-// finds a value by key if exists, returns NULL otherwise
-void *HS_get_element(Hashmap *hs, void *key);
 ```
-### memory
-```C
-// reserves more memory buckets
-int HS_reserve(Hashmap *hs, uint64_t items);
+-> hashmap_new      // allocates a new hashmap
+-> hashmap_set      // sets a new pair, replaces value if key exists
+-> hashmap_get      // returns the value if key exists, NULL otherwise
+-> hashmap_remove   // removes pair if key exists, does nothing otherwise
+-> hashmap_murmur   // hashing function for hashing callback funcs
+-> hashmap_resize   // resizes the hashmap (not recommended to use manually)
+-> hashmap_clear    // clears the hashmap without deallocation, the hashmap can be used again
+-> hashmap_free     // frees the hashmap and it's allocated buckets, the hashmap can't be used again
+-> hashmap_iterator // creates and returns an iterator pointer (doesn't need to be freed)
+-> hashmap_next     // advances the allocator and fills the key and value parameters
+-> hashmap_scan     // applies a callback function for each key/value pair;
+-> hashmap_error    // returns the last error;
+-> hashmap_count    // returns the current length of the hashmap;
 
-// sets hashmap fields to zero and deallocates all pairs
-void HS_clear_hashmap(Hashmap *hs);
 ```
 
-### iterating
-```C
-// applies a function to each element in the hashmap
-void HS_traverse_hashmap(Hashmap *hs, void func(void *, void *));
-
-// applies a function to each element in hashmap + additional parameter can be
-// used as an accumulator
-void HS_traverse_hashmap_payload(Hashmap *hs, void func(void *, void*, void*), void *payload);
+## benchmarking
 ```
-
-### additional
-```C
-// returns how many buckets are available
-uint64_t HS_get_reserved(Hashmap *hs);
-
-// returns how many pairs are in the hashmap
-uint64_t HS_get_count(Hashmap *hs);
-
-// returns the last added element, returns NULL if hashmap is empty
-void *HS_get_head(Hashmap *hs);
-
-// returns the first added element, returns NULL if hashmap is empty
-void *HS_get_tail(Hashmap *hs);
+hashmap_add    - 5000000 test cases took: 2.222000 sec
+hashmap_get    - 5000000 test cases took: 0.587000 sec
+hashmap_scan   - 5000000 test cases took: 0.442000 sec
+hashmap_remove - 5000000 test cases took: 1.159000 sec
 ```
