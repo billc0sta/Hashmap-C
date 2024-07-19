@@ -31,10 +31,10 @@ int main()
 {
 	hashmap* map = hashmap_new(sizeof(char*), sizeof(int), 0, hash_string, compare_string, NULL, NULL);
 
-	hashmap_set(map, &"one", &(int){1});
-	hashmap_set(map, &"two", &(int){2});
-	hashmap_set(map, &"three", &(int){3});
-	hashmap_set(map, &"four", &(int){4});
+	hashmap_set(map, "one", &(int){1});
+	hashmap_set(map, "two", &(int){2});
+	hashmap_set(map, "three", &(int){3});
+	hashmap_set(map, "four", &(int){4});
 
 	int* two = hashmap_get(map, "two");
 	if (!two)
@@ -42,7 +42,7 @@ int main()
 	else
 		printf("two: %d\n", *two);
 
-	hashmap_remove(map, &"four");
+	hashmap_remove(map, "four");
 	printf("count: %zu\n", hashmap_count(map)); 
 
 	hashmap_iter* iter = hashmap_iterator(map);
