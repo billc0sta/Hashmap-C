@@ -1,4 +1,4 @@
-#include "hashmap.h"
+include "hashmap.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -85,6 +85,14 @@ void benchmark_all(hashmap* map, size_t test_cases)
 	printf("hashmap_remove - %zu test cases took: %f sec\n", test_cases, benchmark_remove(map, test_cases));
 }
 
+char* make_string(const char* str)
+{
+	char* s = malloc(strlen(str) + 1);
+	if (!s) return NULL;
+	strcpy(s, str);
+	return s;
+}
+
 void free_string(void* str)
 {
 	// this works similarly to a C++ destructor.
@@ -92,20 +100,21 @@ void free_string(void* str)
 	free(*(char**)str);
 }
 
-unsigned int hash_string(const void* str, unsigned int seed) 
+unsigned int hash_string(const void* str, unsigned int seed)
 {
-	return hashmap_murmur(str, strlen(str), seed);
+	char* s = *(char**)str;
+	return hashmap_murmur(s, strlen(s), seed);
 }
 
-int compare_string(const void* str1, const void* str2) 
+int compare_string(const void* str1, const void* str2)
 {
-	const char* s1 = str1;
-	const char* s2 = str2;
+	const char* s1 = *(char**)str1;
+	const char* s2 = *(char**)str2;
 	return strcmp(s1, s2);
 }
 
 int sum = 0;
-void callback_scan(void* key, void* val) 
+void callback_scan(void* key, void* val)
 {
 	sum += *(int*)val;
 }
@@ -114,29 +123,29 @@ int main()
 {
 	hashmap* map = hashmap_new(sizeof(char*), sizeof(int), 0, hash_string, compare_string, NULL, NULL);
 
-	hashmap_set(map, "one", &(int){1});
-	hashmap_set(map, "two", &(int){2});
-	hashmap_set(map, "three", &(int){3});
-	hashmap_set(map, "four", &(int){4});
+	hashmap_set(map, &(char*){"one"}, &(int){1});
+	hashmap_set(map, &(char*){"two"}, &(int){2});
+	hashmap_set(map, &(char*){"three"}, &(int){3});
+	hashmap_set(map, &(char*){"four"}, &(int){4});
 
-	int* two = hashmap_get(map, "two");
+	int* two = hashmap_get(map, &(char*){"two"});
 	if (!two)
 		printf("hashmap error: %s\n", hashmap_error());
 	else
 		printf("two: %d\n", *two);
 
-	hashmap_remove(map, "four");
-	printf("count: %zu\n", hashmap_count(map)); 
+	hashmap_remove(map, &(char*){"four"});
+	printf("count: %zu\n", hashmap_count(map));
 
 	hashmap_iter* iter = hashmap_iterator(map);
 	void* key;
 	void* val;
-	while (hashmap_next(&iter, &key, &val)) 
+	while (hashmap_next(&iter, &key, &val))
 	{
-		char* k = key;
+		char* k = *(char**)key;
 		int v = *(int*)val;
 		printf("{key -> %s : val -> %d}\n", k, v);
-	} 
+	}
 
 	hashmap_scan(map, callback_scan);
 	printf("sum: %d\n", sum);
