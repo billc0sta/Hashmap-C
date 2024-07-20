@@ -57,21 +57,27 @@ int main()
 ```
 
 ## functions
+### basic
 ```
 -> hashmap_new      // allocates a new hashmap
 -> hashmap_set      // sets a new pair, replaces value if key exists
 -> hashmap_get      // returns the value if key exists, NULL otherwise
 -> hashmap_remove   // removes pair if key exists, does nothing otherwise
--> hashmap_murmur   // hashing function for hashing callback funcs
--> hashmap_resize   // resizes the hashmap (not recommended to use manually)
 -> hashmap_clear    // clears the hashmap without deallocation, the hashmap can be used again
 -> hashmap_free     // frees the hashmap and it's allocated buckets, the hashmap can't be used again
+```
+### iterators
+```
 -> hashmap_iterator // creates and returns an iterator pointer (doesn't need to be freed)
 -> hashmap_next     // advances the allocator and fills the key and value parameters
 -> hashmap_scan     // applies a callback function for each key/value pair;
+```
+### utilities
+```
+-> hashmap_murmur   // hashing function for hashing callback funcs
 -> hashmap_error    // returns the last error;
 -> hashmap_count    // returns the current length of the hashmap;
-
+-> hashmap_resize   // resizes the hashmap (not recommended to use manually)
 ```
 
 ## benchmarking
