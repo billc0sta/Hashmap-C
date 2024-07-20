@@ -37,8 +37,8 @@ typedef struct
 	size_t length;
 	unsigned int (*hasher)(const void*, unsigned int seed);
 	int (*cmp)(const void*, const void*);
-	void (*destroy_val)(void*);
-	void (*destroy_key)(void*);
+	void (*destroy_val)(const void*);
+	void (*destroy_key)(const void*);
 	unsigned int seed;
 } hashmap;
 
@@ -46,7 +46,7 @@ typedef struct hashmap_iter hashmap_iter;
 
 hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
 	unsigned int hasher(const void*, unsigned int), int cmp(const void*, const void*),
-	void key_destructor(void*), void value_destructor(void*))
+	void key_destructor(const void*), void value_destructor(const void*))
 {
 	int               mfail   = 0;
 	hashmap*          out     = malloc(sizeof(hashmap));
