@@ -1,4 +1,9 @@
 simple and acceptably fast C hashmap implementation.
+## Features
+- header only
+- very easy to use
+- pretty good performance
+- generic interface allowing variable sized keys
 
 ## Usage
 ```C
@@ -56,8 +61,8 @@ int main()
 }
 ```
 
-## functions
-### basic
+## Functions
+### Basic
 ```
 -> hashmap_new      // allocates a new hashmap
 -> hashmap_set      // sets a new pair, replaces value if key exists
@@ -66,13 +71,13 @@ int main()
 -> hashmap_clear    // clears the hashmap without deallocation, the hashmap can be used again
 -> hashmap_free     // frees the hashmap and it's allocated buckets, the hashmap can't be used again
 ```
-### iterators
+### Iterators
 ```
 -> hashmap_iterator // creates and returns an iterator pointer (doesn't need to be freed)
 -> hashmap_next     // advances the allocator and fills the key and value parameters
 -> hashmap_scan     // applies a callback function for each key/value pair;
 ```
-### utilities
+### Utilities
 ```
 -> hashmap_murmur   // hashing function for hashing callback funcs
 -> hashmap_error    // returns the last error;
@@ -80,7 +85,7 @@ int main()
 -> hashmap_resize   // resizes the hashmap (not recommended to use manually)
 ```
 
-## benchmarking
+## Benchmarking
 ```
 hashmap_add    - 5000000 test cases took: 2.222000 sec
 hashmap_get    - 5000000 test cases took: 0.587000 sec
