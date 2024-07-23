@@ -126,18 +126,6 @@ static int _compare(hashmap* map, void* key1, void* key2)
 	return memcmp(key1, key2, map->key_size);
 }
 
-static void _free_val(hashmap* map, void* val)
-{
-	if (map->destroy_val) map->destroy_val(val);
-	free(val);
-}
-
-static void _free_key(hashmap* map, void* key)
-{
-	if (map->destroy_key) map->destroy_key(key);
-	free(key);
-}
-
 static struct hash_node* _hashmap_find(hashmap* map, void* key)
 {
 	unsigned int i = _hash(map, key);
@@ -207,6 +195,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	{
 		if (map->destroy_val) map->destroy_val(bucket->val);
 		memcpy(bucket->val, value, map->val_size);
+		memcpy(bucket->key, key, map->key_size);
 		bucket->state = STATE_USED;
 		return 1;
 	}
