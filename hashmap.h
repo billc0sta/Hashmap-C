@@ -192,6 +192,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	if (bucket->state != STATE_UNUSED)
 	{
 		if (map->destroy_val) map->destroy_val(bucket->val);
+		if (map->destroy_key) map->destroy_key(bucket->key);
 		memcpy(bucket->val, value, map->val_size);
 		memcpy(bucket->key, key, map->key_size);
 		bucket->state = STATE_USED;
