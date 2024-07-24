@@ -42,20 +42,20 @@ typedef struct
 	unsigned int seed;
 } hashmap;
 
-typedef struct hashmap_iter hashmap_iter; 
+typedef struct hashmap_iter hashmap_iter;
 
 hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
 	unsigned int hasher(const void*, unsigned int), int cmp(const void*, const void*),
 	void key_destructor(const void*), void value_destructor(const void*))
 {
-	int               mfail   = 0;
-	hashmap*          out     = malloc(sizeof(hashmap));
+	int               mfail = 0;
+	hashmap* out = malloc(sizeof(hashmap));
 	struct hash_node* buckets = calloc(INITIAL_BUCKETS, sizeof(struct hash_node));
-	void*             data    = malloc(key_size * INITIAL_BUCKETS + val_size * INITIAL_BUCKETS);
+	void* data = malloc(key_size * INITIAL_BUCKETS + val_size * INITIAL_BUCKETS);
 
 	if (!out || !buckets || !data)
 		mfail = 1;
-	if (mfail) 
+	if (mfail)
 	{
 		if (out) free(out);
 		if (data) free(data);
@@ -63,20 +63,20 @@ hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
 		strcpy(_hashmap_last_error, "malloc failed!\n");
 		return NULL;
 	}
-	out->mapped      = 0;
-	out->length      = 0;
-	out->buckets     = buckets;
-	out->data        = data;
-	out->key_size    = key_size;
-	out->val_size    = val_size;
-	out->space       = INITIAL_BUCKETS;
-	out->hasher      = hasher;
-	out->cmp         = cmp;
+	out->mapped = 0;
+	out->length = 0;
+	out->buckets = buckets;
+	out->data = data;
+	out->key_size = key_size;
+	out->val_size = val_size;
+	out->space = INITIAL_BUCKETS;
+	out->hasher = hasher;
+	out->cmp = cmp;
 	out->destroy_key = key_destructor;
 	out->destroy_val = value_destructor;
-	out->seed        = seed;
-	out->head        = NULL;
-	out->tail        = NULL;
+	out->seed = seed;
+	out->head = NULL;
+	out->tail = NULL;
 	return out;
 }
 
@@ -133,7 +133,7 @@ static struct hash_node* _hashmap_find(hashmap* map, void* key)
 	while ((bucket = &map->buckets[i])->state != STATE_UNUSED && _compare(map, key, bucket->key) != 0)
 		i = (i + 1) % map->space;
 
-	return bucket; 
+	return bucket;
 }
 
 // recursive
@@ -152,20 +152,20 @@ int hashmap_resize(hashmap* map, size_t resize_by)
 	if (resize_by == 0)
 		resize_by = INITIAL_BUCKETS;
 
-	map->             length      = 0;
-	map->             mapped      = 0; 
-	map->             space       = resize_by;
-	struct hash_node* old_head    = map->head;
+	map->length = 0;
+	map->mapped = 0;
+	int old_space = map->space;
+	map->space = resize_by;
 	struct hash_node* old_buckets = map->buckets;
-	void*             old_data    = map->data;
+	void* old_data = map->data;
 	struct hash_node* new_buckets = calloc(map->space, sizeof(struct hash_node));
-	void*             new_data    = malloc(map->key_size * map->space + map->val_size * map->space);
-	map->             head        = NULL;
-	map->             tail        = NULL;
+	void* new_data = malloc(map->key_size * map->space + map->val_size * map->space);
+	map->head = NULL;
+	map->tail = NULL;
 
 	int mfail = 0;
 	if (!new_buckets || !new_data) mfail = 1;
-	if (mfail) 
+	if (mfail)
 	{
 		if (new_buckets) free(new_buckets);
 		if (new_data) free(new_data);
@@ -174,9 +174,17 @@ int hashmap_resize(hashmap* map, size_t resize_by)
 	}
 	map->buckets = new_buckets;
 	map->data = new_data;
-	for (struct hash_node* curr = old_head; curr; curr = curr->next) 
-		hashmap_set(map, curr->key, curr->val); 
-
+	for (int i = 0; i < old_space; ++i) 
+	{
+		struct hash_node* curr = &old_buckets[i];
+		if (curr->state == STATE_USED)
+			hashmap_set(map, curr->key, curr->val);
+		if (curr->state == STATE_DELETED)
+		{
+			if (map->destroy_key) map->destroy_key(curr->key);
+			if (map->destroy_val) map->destroy_val(curr->val);
+		}
+	} 
 	free(old_buckets);
 	free(old_data);
 
@@ -206,8 +214,8 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	memcpy(bucket->key, key, map->key_size);
 	memcpy(bucket->val, value, map->val_size);
 	bucket->state = STATE_USED;
-	bucket->next  = NULL;
-	bucket->prev  = map->tail;
+	bucket->next = NULL;
+	bucket->prev = map->tail;
 	if (!map->head)
 	{
 		map->head = bucket;
@@ -220,7 +228,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	}
 	++map->length;
 
-	if ((float)map->length / map->space >= LOAD_FACTOR_MAX)
+	if ((float)map->mapped / map->space >= LOAD_FACTOR_MAX)
 		hashmap_resize(map, map->space * MULTIPLY_SPACE);
 
 	return 1;
@@ -234,7 +242,7 @@ void* hashmap_get(hashmap* map, void* key)
 		return NULL;
 	}
 	struct hash_node* found = _hashmap_find(map, key);
-	if (found->state == STATE_USED) 
+	if (found->state == STATE_USED)
 		return found->val;
 
 	strcpy(_hashmap_last_error, "no such key!\n");
@@ -249,11 +257,11 @@ int hashmap_remove(hashmap* map, void* key)
 		return 0;
 	}
 	struct hash_node* found = _hashmap_find(map, key);
-	if (found->state != STATE_USED) 
+	if (found->state != STATE_USED)
 	{
 		strcpy(_hashmap_last_error, "no such key!\n");
 		return 0;
-	} 
+	}
 
 	if (found->prev)
 		found->prev->next = found->next;
@@ -265,17 +273,15 @@ int hashmap_remove(hashmap* map, void* key)
 		map->tail = found->prev;
 
 	found->state = STATE_DELETED;
-	if (map->destroy_key) map->destroy_key(found->key);
-	if (map->destroy_val) map->destroy_val(found->val);
 	--map->length;
 
 	if ((float)map->length / map->space <= LOAD_FACTOR_MIN)
 		hashmap_resize(map, map->space / MULTIPLY_SPACE);
 
-	return 1; 
+	return 1;
 }
 
-int hashmap_clear(hashmap* map) 
+int hashmap_clear(hashmap* map)
 {
 	if (!map)
 	{
@@ -293,7 +299,7 @@ int hashmap_clear(hashmap* map)
 	map->mapped = 0;
 	map->length = 0;
 	return 1;
-} 
+}
 
 int hashmap_free(hashmap* map)
 {
@@ -311,10 +317,10 @@ int hashmap_free(hashmap* map)
 
 hashmap_iter* hashmap_iterator(hashmap* map)
 {
-	if (!map) 
+	if (!map)
 	{
 		strcpy(_hashmap_last_error, "passed null pointer!\n");
-		return NULL; 
+		return NULL;
 	}
 	return (hashmap_iter*)map->head;
 }
@@ -330,9 +336,9 @@ int hashmap_next(hashmap_iter** iter, void** key, void** val)
 		return 0;
 
 	struct hash_node* node = (struct hash_node*)*iter;
-	*key  = node->key;
-	*val  = node->val;
-	*iter = (hashmap_iter*)node->next; 
+	*key = node->key;
+	*val = node->val;
+	*iter = (hashmap_iter*)node->next;
 	return 1;
 }
 
