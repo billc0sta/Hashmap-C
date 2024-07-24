@@ -27,7 +27,7 @@ void callback_scan(void* key, void* val)
 }
 
 int main()
-{
+{ 
 	hashmap* map = hashmap_new(sizeof(char*), sizeof(int), 0, hash_string, compare_string, NULL, NULL);
 
 	hashmap_set(map, &(char*){"one"}, &(int){1});
@@ -44,10 +44,10 @@ int main()
 	hashmap_remove(map, &(char*){"four"});
 	printf("count: %zu\n", hashmap_count(map));
 
-	hashmap_iter* iter = hashmap_iterator(map);
+	size_t i = 0;
 	void* key;
 	void* val;
-	while (hashmap_next(&iter, &key, &val))
+	while (hashmap_next(map, &i, &key, &val))
 	{
 		char* k = *(char**)key;
 		int v = *(int*)val;
@@ -56,7 +56,6 @@ int main()
 
 	hashmap_scan(map, callback_scan);
 	printf("sum: %d\n", sum);
-
 	hashmap_free(map);
 }
 ```
