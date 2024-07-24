@@ -189,7 +189,21 @@ int hashmap_set(hashmap* map, void* key, void* value)
 		return 0;
 	}
 
-	struct hash_node* bucket = _hashmap_find(map, key);
+	unsigned int i = _hash(map, key);
+	struct hash_node* deleted_bucket = NULL;
+	struct hash_node* bucket         = NULL;
+	while ((bucket = &map->buckets[i])->state != STATE_UNUSED && _compare(map, key, bucket->key) != 0) 
+	{
+		if (bucket->state == STATE_DELETED)
+			deleted_bucket = bucket;
+		i = (i + 1) % map->space;
+	}
+	if (deleted_bucket) 
+	{
+		if (bucket->state == STATE_USED)
+			bucket->state = STATE_DELETED;
+		bucket = deleted_bucket;
+	} 
 
 	if (bucket->state == STATE_UNUSED)
 	{
@@ -208,7 +222,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	bucket->state = STATE_USED;
 	++map->length;
 
-	if ((float)map->mapped / map->space >= LOAD_FACTOR_MAX)
+	if ((float)map->length / map->space >= LOAD_FACTOR_MAX)
 		hashmap_resize(map, map->space * MULTIPLY_SPACE);
 
 	return 1;
