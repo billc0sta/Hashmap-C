@@ -188,26 +188,30 @@ int hashmap_set(hashmap* map, void* key, void* value)
 		strcpy(_hashmap_last_error, "passed null pointer!\n");
 		return 0;
 	}
-	struct hash_node* bucket = _hashmap_find(map, key);
-	if (bucket->state != STATE_UNUSED)
+
+	unsigned int i = _hash(map, key);
+	struct hash_node* bucket;
+	while ((bucket = &map->buckets[i])->state == STATE_USED && _compare(map, key, bucket->key) != 0)
+		i = (i + 1) % map->space;
+
+	if (bucket->state == STATE_UNUSED)
+	{
+		bucket->key = (char*)map->data + map->key_size * map->mapped;
+		bucket->val = (char*)map->data + map->key_size * map->space + map->val_size * map->mapped;
+		++map->mapped;
+	}
+	else 
 	{
 		if (map->destroy_val) map->destroy_val(bucket->val);
 		if (map->destroy_key) map->destroy_key(bucket->key);
-		memcpy(bucket->val, value, map->val_size);
-		memcpy(bucket->key, key, map->key_size);
-		bucket->state = STATE_USED;
-		return 1;
 	}
-	bucket->key = (char*)map->data + map->key_size * map->mapped;
-	bucket->val = (char*)map->data + map->key_size * map->space + map->val_size * map->mapped;
-	++map->mapped;
 
 	memcpy(bucket->key, key, map->key_size);
 	memcpy(bucket->val, value, map->val_size);
 	bucket->state = STATE_USED;
 	++map->length;
 
-	if ((float)map->mapped / map->space >= LOAD_FACTOR_MAX)
+	if ((float)map->length / map->space >= LOAD_FACTOR_MAX)
 		hashmap_resize(map, map->space * MULTIPLY_SPACE);
 
 	return 1;
