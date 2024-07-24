@@ -87,8 +87,8 @@ int main()
 
 ## Benchmarking
 ```
-hashmap_add    - 5000000 test cases took: 1.513000 sec
-hashmap_get    - 5000000 test cases took: 0.642000 sec
-hashmap_scan   - 5000000 test cases took: 0.263000 sec
-hashmap_remove - 5000000 test cases took: 1.097000 sec
+hashmap_add    - 5000000 test cases took: 1.405000 sec
+hashmap_get    - 5000000 test cases took: 0.615000 sec
+hashmap_scan   - 5000000 test cases took: 0.037000 sec
+hashmap_remove - 5000000 test cases took: 0.876000 sec
 ```
