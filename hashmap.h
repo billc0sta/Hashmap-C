@@ -19,7 +19,7 @@ struct hash_node
 {
 	void* key;
 	void* val;
-	char state; // 0 = unused, 1 = used, 2 = deleted;
+	char state;
 };
 
 typedef struct
@@ -138,11 +138,11 @@ int hashmap_resize(hashmap* map, size_t resize_by)
 		strcpy(_hashmap_last_error, "passed null pointer!\n");
 		return 0;
 	}
-	if (resize_by == map->space)
-		return 1;
-
 	if (resize_by == 0)
 		resize_by = INITIAL_BUCKETS;
+
+	if (resize_by == map->space)
+		return 1;
 
 	map->length = 0;
 	map->mapped = 0;
@@ -189,10 +189,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 		return 0;
 	}
 
-	unsigned int i = _hash(map, key);
-	struct hash_node* bucket;
-	while ((bucket = &map->buckets[i])->state == STATE_USED && _compare(map, key, bucket->key) != 0)
-		i = (i + 1) % map->space;
+	struct hash_node* bucket = _hashmap_find(map, key);
 
 	if (bucket->state == STATE_UNUSED)
 	{
@@ -211,7 +208,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	bucket->state = STATE_USED;
 	++map->length;
 
-	if ((float)map->length / map->space >= LOAD_FACTOR_MAX)
+	if ((float)map->mapped / map->space >= LOAD_FACTOR_MAX)
 		hashmap_resize(map, map->space * MULTIPLY_SPACE);
 
 	return 1;
@@ -249,7 +246,7 @@ int hashmap_remove(hashmap* map, void* key)
 	found->state = STATE_DELETED;
 	--map->length;
 
-	if ((float)map->length / map->space <= LOAD_FACTOR_MIN)
+	if (map->space > INITIAL_BUCKETS && (float)map->length / map->space <= LOAD_FACTOR_MIN)
 		hashmap_resize(map, map->space / MULTIPLY_SPACE);
 
 	return 1;
