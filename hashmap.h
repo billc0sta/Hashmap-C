@@ -261,7 +261,7 @@ int hashmap_clear(hashmap* map)
 	for (int i = 0; i < map->space; ++i)
 	{
 		struct hash_node* node = &map->buckets[i];
-		if (node->state == STATE_USED)
+		if (node->state != STATE_UNUSED)
 		{
 			if (map->destroy_key) map->destroy_key(node->key);
 			if (map->destroy_val) map->destroy_val(node->val);
