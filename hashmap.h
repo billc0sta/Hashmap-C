@@ -19,16 +19,12 @@ struct hash_node
 {
 	void* key;
 	void* val;
-	struct hash_node* next;
-	struct hash_node* prev;
 	char state; // 0 = unused, 1 = used, 2 = deleted;
 };
 
 typedef struct
 {
 	struct hash_node* buckets;
-	struct hash_node* head;
-	struct hash_node* tail;
 	void* data;
 	size_t mapped;
 	size_t key_size;
@@ -41,8 +37,6 @@ typedef struct
 	void (*destroy_key)(const void*);
 	unsigned int seed;
 } hashmap;
-
-typedef struct hashmap_iter hashmap_iter;
 
 hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
 	unsigned int hasher(const void*, unsigned int), int cmp(const void*, const void*),
@@ -75,8 +69,6 @@ hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
 	out->destroy_key = key_destructor;
 	out->destroy_val = value_destructor;
 	out->seed = seed;
-	out->head = NULL;
-	out->tail = NULL;
 	return out;
 }
 
@@ -160,8 +152,6 @@ int hashmap_resize(hashmap* map, size_t resize_by)
 	void* old_data = map->data;
 	struct hash_node* new_buckets = calloc(map->space, sizeof(struct hash_node));
 	void* new_data = malloc(map->key_size * map->space + map->val_size * map->space);
-	map->head = NULL;
-	map->tail = NULL;
 
 	int mfail = 0;
 	if (!new_buckets || !new_data) mfail = 1;
@@ -214,18 +204,6 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	memcpy(bucket->key, key, map->key_size);
 	memcpy(bucket->val, value, map->val_size);
 	bucket->state = STATE_USED;
-	bucket->next = NULL;
-	bucket->prev = map->tail;
-	if (!map->head)
-	{
-		map->head = bucket;
-		map->tail = bucket;
-	}
-	else
-	{
-		map->tail->next = bucket;
-		map->tail = bucket;
-	}
 	++map->length;
 
 	if ((float)map->mapped / map->space >= LOAD_FACTOR_MAX)
@@ -263,15 +241,6 @@ int hashmap_remove(hashmap* map, void* key)
 		return 0;
 	}
 
-	if (found->prev)
-		found->prev->next = found->next;
-	if (found->next)
-		found->next->prev = found->prev;
-	if (found == map->head)
-		map->head = found->next;
-	if (found == map->tail)
-		map->tail = found->prev;
-
 	found->state = STATE_DELETED;
 	--map->length;
 
@@ -288,14 +257,16 @@ int hashmap_clear(hashmap* map)
 		strcpy(_hashmap_last_error, "passed null pointer!\n");
 		return 0;
 	}
-	for (struct hash_node* curr = map->head; curr; curr = curr->next)
+	for (int i = 0; i < map->space; ++i)
 	{
-		if (map->destroy_key) map->destroy_key(curr->key);
-		if (map->destroy_val) map->destroy_val(curr->val);
-		curr->state = STATE_UNUSED;
+		struct hash_node* node = &map->buckets[i];
+		if (node->state == STATE_USED)
+		{
+			if (map->destroy_key) map->destroy_key(node->key);
+			if (map->destroy_val) map->destroy_val(node->val);
+			node->state = STATE_UNUSED;
+		}
 	}
-	map->head = NULL;
-	map->tail = NULL;
 	map->mapped = 0;
 	map->length = 0;
 	return 1;
@@ -315,31 +286,26 @@ int hashmap_free(hashmap* map)
 	return 1;
 }
 
-hashmap_iter* hashmap_iterator(hashmap* map)
+int hashmap_next(hashmap* map, size_t* iter, void** key, void** val)
 {
-	if (!map)
-	{
-		strcpy(_hashmap_last_error, "passed null pointer!\n");
-		return NULL;
-	}
-	return (hashmap_iter*)map->head;
-}
-
-int hashmap_next(hashmap_iter** iter, void** key, void** val)
-{
-	if (!iter || !key || !val)
+	if (!map || !iter || !key || !val)
 	{
 		strcpy(_hashmap_last_error, "passed null pointer!\n");
 		return 0;
 	}
-	if (!*iter)
-		return 0;
 
-	struct hash_node* node = (struct hash_node*)*iter;
-	*key = node->key;
-	*val = node->val;
-	*iter = (hashmap_iter*)node->next;
-	return 1;
+	while (*iter < map->space) 
+	{
+		struct hash_node* node = &map->buckets[*iter];
+		++(*iter);
+		if (node->state == STATE_USED) 
+		{
+			*key = node->key;
+			*val = node->val;
+			return 1;
+		}
+	} 
+	return 0; 
 }
 
 int hashmap_scan(hashmap* map, void iter_func(void*, void*))
@@ -354,10 +320,10 @@ int hashmap_scan(hashmap* map, void iter_func(void*, void*))
 		strcpy(_hashmap_last_error, "empty map!\n");
 		return 0;
 	}
-	hashmap_iter* iter = hashmap_iterator(map);
+	size_t iter = 0; 
 	void* key = NULL;
 	void* val = NULL;
-	while (hashmap_next(&iter, &key, &val))
+	while (hashmap_next(map, &iter, &key, &val))
 	{
 		iter_func(key, val);
 	}
