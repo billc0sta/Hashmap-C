@@ -72,7 +72,6 @@ int main()
 ```
 ### Iterators
 ```
--> hashmap_iterator // creates and returns an iterator pointer (doesn't need to be freed)
 -> hashmap_next     // advances the allocator and fills the key and value parameters
 -> hashmap_scan     // applies a callback function for each key/value pair;
 ```
