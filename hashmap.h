@@ -13,16 +13,16 @@
 #define STATE_USED 1
 #define STATE_DELETED 2
 
-char _hashmap_last_error[64] = { '\0' };
+static char _hashmap_last_error[64] = { '\0' };
 
-struct hash_node
+static struct hash_node
 {
 	void* key;
 	void* val;
 	char state;
 };
 
-typedef struct
+static typedef struct
 {
 	struct hash_node* buckets;
 	void* data;
@@ -38,7 +38,7 @@ typedef struct
 	unsigned int seed;
 } hashmap;
 
-hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
+static hashmap* hashmap_new(size_t key_size, size_t val_size, unsigned int seed,
 	unsigned int hasher(const void*, unsigned int), int cmp(const void*, const void*),
 	void key_destructor(const void*), void value_destructor(const void*))
 {
@@ -80,7 +80,7 @@ static inline unsigned int _murmur_32_scramble(unsigned int k) {
 	return k;
 }
 
-unsigned int hashmap_murmur(const void* key, size_t size, unsigned int seed)
+static unsigned int hashmap_murmur(const void* key, size_t size, unsigned int seed)
 {
 	unsigned int h = seed;
 	unsigned int k;
@@ -129,9 +129,9 @@ static struct hash_node* _hashmap_find(hashmap* map, void* key)
 }
 
 // recursive
-int hashmap_set(hashmap* map, void* key, void* value);
+static int hashmap_set(hashmap* map, void* key, void* value);
 
-int hashmap_resize(hashmap* map, size_t resize_by)
+static int hashmap_resize(hashmap* map, size_t resize_by)
 {
 	if (!map)
 	{
@@ -181,7 +181,7 @@ int hashmap_resize(hashmap* map, size_t resize_by)
 	return 1;
 }
 
-int hashmap_set(hashmap* map, void* key, void* value)
+static int hashmap_set(hashmap* map, void* key, void* value)
 {
 	if (!map || !key || !value)
 	{
@@ -228,7 +228,7 @@ int hashmap_set(hashmap* map, void* key, void* value)
 	return 1;
 }
 
-void* hashmap_get(hashmap* map, void* key)
+static void* hashmap_get(hashmap* map, void* key)
 {
 	if (!map || !key)
 	{
@@ -243,7 +243,7 @@ void* hashmap_get(hashmap* map, void* key)
 	return NULL;
 }
 
-int hashmap_remove(hashmap* map, void* key)
+static int hashmap_remove(hashmap* map, void* key)
 {
 	if (!map || !key)
 	{
@@ -266,7 +266,7 @@ int hashmap_remove(hashmap* map, void* key)
 	return 1;
 }
 
-int hashmap_clear(hashmap* map)
+static int hashmap_clear(hashmap* map)
 {
 	if (!map)
 	{
@@ -288,7 +288,7 @@ int hashmap_clear(hashmap* map)
 	return 1;
 }
 
-int hashmap_free(hashmap* map)
+static int hashmap_free(hashmap* map)
 {
 	if (!map)
 	{
@@ -302,7 +302,7 @@ int hashmap_free(hashmap* map)
 	return 1;
 }
 
-int hashmap_next(hashmap* map, size_t* iter, void** key, void** val)
+static int hashmap_next(hashmap* map, size_t* iter, void** key, void** val)
 {
 	if (!map || !iter || !key || !val)
 	{
@@ -324,7 +324,7 @@ int hashmap_next(hashmap* map, size_t* iter, void** key, void** val)
 	return 0; 
 }
 
-int hashmap_scan(hashmap* map, void iter_func(void*, void*))
+static int hashmap_scan(hashmap* map, void iter_func(void*, void*))
 {
 	if (!map)
 	{
@@ -346,12 +346,12 @@ int hashmap_scan(hashmap* map, void iter_func(void*, void*))
 	return 1;
 }
 
-const char* hashmap_error()
-{
+static const char* hashmap_error()
+{ 
 	return _hashmap_last_error;
 }
 
-size_t hashmap_count(hashmap* map)
+static size_t hashmap_count(hashmap* map)
 {
 	if (!map)
 	{
@@ -360,4 +360,5 @@ size_t hashmap_count(hashmap* map)
 	}
 	return map->length;
 }
+
 #endif
